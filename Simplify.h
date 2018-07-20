@@ -1111,7 +1111,7 @@ namespace Simplify
 
             fwrite(spacer,sizeof(spacer),1,file);
         }
-        // fclose(file);
+        fclose(file);
     }
 
 };
