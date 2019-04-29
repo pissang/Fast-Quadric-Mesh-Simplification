@@ -1,7 +1,7 @@
 {
-  "name": "quadric-mesh-simplify",
+  "name": "gltf-mesh-simplify",
   "version": "1.0.0",
-  "description": "WebAssembly version of Fast Quadric Mesh Simplification",
+  "description": "glTF mesh simplify using Fast Quadric Mesh Simplification",
   "main": "simplify.js",
   "directories": {
     "test": "test"

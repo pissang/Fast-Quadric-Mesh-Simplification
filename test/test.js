@@ -18,5 +18,5 @@ parseOBJ(fs.createReadStream('./bunny.obj'), function (err, result) {
         triangles[cursor++] = result.facePositions[i][1] - 1;
         triangles[cursor++] = result.facePositions[i][2] - 1;
     }
-    console.log(simplify(vertices, triangles, 0.1));
+    console.log(simplify(vertices, null, triangles, 0.1));
 });

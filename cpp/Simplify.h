@@ -17,89 +17,20 @@
 //#include <sys/stat.h>
 //#include <stdbool.h>
 #include <string.h>
-#include <string>
-#include <fstream>
-#include <algorithm>
-#include <iostream>
-#include <cstring> // memcpy
 //#include <ctype.h>
 //#include <float.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <map>
 #include <vector>
+#include <string>
 #include <math.h>
 #include <float.h> //FLT_EPSILON, DBL_EPSILON
-#include <stdint.h>
 
 #define loopi(start_l,end_l) for ( int i=start_l;i<end_l;++i )
 #define loopi(start_l,end_l) for ( int i=start_l;i<end_l;++i )
 #define loopj(start_l,end_l) for ( int j=start_l;j<end_l;++j )
 #define loopk(start_l,end_l) for ( int k=start_l;k<end_l;++k )
-
-/*
- *  Represents an optionally-indexed vertex in space
- */
-struct VertexSTL
-{
-    VertexSTL() {}
-    VertexSTL(float x, float y, float z) : x(x), y(y), z(z) {}
-
-    float x, y, z;
-    unsigned int i;
-
-    bool operator!=(const VertexSTL& rhs) const
-    {
-        return x != rhs.x || y != rhs.y || z != rhs.z;
-    }
-    bool operator<(const VertexSTL& rhs) const
-    {
-        if      (x != rhs.x)    return x < rhs.x;
-        else if (y != rhs.y)    return y < rhs.y;
-        else if (z != rhs.z)    return z < rhs.z;
-        else                    return false;
-    }
-};
-inline std::string trim(std::string& str)
-{
-    str.erase(0, str.find_first_not_of(' '));       //prefixing spaces
-    str.erase(str.find_last_not_of(' ')+1);         //surfixing spaces
-    return str;
-}
-
-inline VertexSTL get_vector(std::string& str)
-{
-    // "vertex float float float"
-    float x, y, z;
-
-    // if(sscanf(str.c_str(),"%*[ \t]vertex%*[ \t]%f%*[ \t]%f%*[ \t]%f%*[ \t]",
-        // &x,	&y,	&z) == 3)
-        // printf("%f %f %f", x, y, z);
-    if(sscanf(str.c_str(),"vertex %f %f %f",
-        &x,	&y,	&z) != 3) {
-        printf("weird format ascii stl exiting\n");
-        exit(1);
-    }
-    VertexSTL v(x, y, z);
-
-    // int space0 = str.find_first_of(' ');
-    // str.erase(0, space0); // remove "vertex"
-    // str.erase(0, str.find_first_not_of(' ')); //prefixing spaces
-    // int space1 = str.find_first_of(' ');
-
-    // float x = std::stof(str.substr(0, space1));
-
-    // str.erase(0, space1+1); // remove x
-    // str.erase(0, str.find_first_not_of(' ')); //prefixing spaces
-
-    // int space2 = str.find_last_of(' ');
-
-    // VertexSTL v(x,
-        // std::stof(str.substr(0, space2)),
-        // std::stof(str.substr(space2, str.size()))
-    // );
-    return v;
-}
-
 
 struct vector3
 {
@@ -280,8 +211,34 @@ struct vec3f
 		z=(double)random_double_01(z);
 		return *this;
 	}
+
 };
 
+vec3f barycentric(const vec3f &p, const vec3f &a, const vec3f &b, const vec3f &c){
+	vec3f v0 = b-a;
+	vec3f v1 = c-a;
+	vec3f v2 = p-a;
+	double d00 = v0.dot(v0);
+	double d01 = v0.dot(v1);
+	double d11 = v1.dot(v1);
+	double d20 = v2.dot(v0);
+	double d21 = v2.dot(v1);
+	double denom = d00*d11-d01*d01;
+	double v = (d11 * d20 - d01 * d21) / denom;
+	double w = (d00 * d21 - d01 * d20) / denom;
+	double u = 1.0 - v - w;
+	return vec3f(u,v,w);
+}
+
+vec3f interpolate(const vec3f &p, const vec3f &a, const vec3f &b, const vec3f &c, const vec3f attrs[3])
+{
+	vec3f bary = barycentric(p,a,b,c);
+	vec3f out = vec3f(0,0,0);
+	out = out + attrs[0] * bary.x;
+	out = out + attrs[1] * bary.y;
+	out = out + attrs[2] * bary.z;
+	return out;
+}
 
 double min(double v1, double v2) {
 	return fmin(v1,v2);
@@ -352,19 +309,27 @@ class SymetricMatrix {
 namespace Simplify
 {
 	// Global Variables & Strctures
-
-	struct Triangle { int v[3];double err[4];int deleted,dirty;vec3f n; };
+	enum Attributes {
+		NONE,
+		NORMAL = 2,
+		TEXCOORD = 4,
+		COLOR = 8
+	};
+	struct Triangle { int v[3];double err[4];int deleted,dirty,attr;vec3f n;vec3f uvs[3];int material; };
 	struct Vertex { vec3f p;int tstart,tcount;SymetricMatrix q;int border;};
 	struct Ref { int tid,tvertex; };
 	std::vector<Triangle> triangles;
 	std::vector<Vertex> vertices;
 	std::vector<Ref> refs;
+    std::string mtllib;
+    std::vector<std::string> materials;
 
 	// Helper functions
 
 	double vertex_error(SymetricMatrix q, double x, double y, double z);
 	double calculate_error(int id_v1, int id_v2, vec3f &p_result);
 	bool flipped(vec3f p,int i0,int i1,Vertex &v0,Vertex &v1,std::vector<int> &deleted);
+	void update_uvs(int i0,const Vertex &v,const vec3f &p,std::vector<int> &deleted);
 	void update_triangles(int i0,Vertex &v,std::vector<int> &deleted,int &deleted_triangles);
 	void update_mesh(int iteration);
 	void compact_mesh();
@@ -372,7 +337,7 @@ namespace Simplify
 	// Main simplification function
 	//
 	// target_count  : target nr. of triangles
-	// agressiveness : sharpness to increase the threashold.
+	// agressiveness : sharpness to increase the threshold.
 	//                 5..8 are good numbers
 	//                 more iterations yield higher quality
 	//
@@ -380,7 +345,10 @@ namespace Simplify
 	void simplify_mesh(int target_count, double agressiveness=7, bool verbose=false)
 	{
 		// init
-		loopi(0,triangles.size()) triangles[i].deleted=0;
+		loopi(0,triangles.size())
+        {
+            triangles[i].deleted=0;
+        }
 
 		// main iteration loop
 		int deleted_triangles=0;
@@ -435,11 +403,16 @@ namespace Simplify
 					calculate_error(i0,i1,p);
 					deleted0.resize(v0.tcount); // normals temporarily
 					deleted1.resize(v1.tcount); // normals temporarily
-					// dont remove if flipped
+					// don't remove if flipped
 					if( flipped(p,i0,i1,v0,v1,deleted0) ) continue;
 
 					if( flipped(p,i1,i0,v1,v0,deleted1) ) continue;
 
+					if ( (t.attr & TEXCOORD) == TEXCOORD  )
+					{
+						update_uvs(i0,v0,p,deleted0);
+						update_uvs(i0,v1,p,deleted1);
+					}
 
 					// not flipped, so remove edge
 					v0.p=p;
@@ -522,9 +495,15 @@ namespace Simplify
 					deleted0.resize(v0.tcount); // normals temporarily
 					deleted1.resize(v1.tcount); // normals temporarily
 
-					// dont remove if flipped
+					// don't remove if flipped
 					if( flipped(p,i0,i1,v0,v1,deleted0) ) continue;
 					if( flipped(p,i1,i0,v1,v0,deleted1) ) continue;
+
+					if ( (t.attr & TEXCOORD) == TEXCOORD )
+					{
+						update_uvs(i0,v0,p,deleted0);
+						update_uvs(i0,v1,p,deleted1);
+					}
 
 					// not flipped, so remove edge
 					v0.p=p;
@@ -587,6 +566,23 @@ namespace Simplify
 			if(n.dot(t.n)<0.2) return true;
 		}
 		return false;
+	}
+
+    // update_uvs
+
+	void update_uvs(int i0,const Vertex &v,const vec3f &p,std::vector<int> &deleted)
+	{
+		loopk(0,v.tcount)
+		{
+			Ref &r=refs[v.tstart+k];
+			Triangle &t=triangles[r.tid];
+			if(t.deleted)continue;
+			if(deleted[k])continue;
+			vec3f p1=vertices[t.v[0]].p;
+			vec3f p2=vertices[t.v[1]].p;
+			vec3f p3=vertices[t.v[2]].p;
+			t.uvs[r.tvertex] = interpolate(p,p1,p2,p3,t.uvs);
+		}
 	}
 
 	// Update triangle connections and edge error after a edge is collapsed
@@ -813,8 +809,28 @@ namespace Simplify
 		return error;
 	}
 
+	char *trimwhitespace(char *str)
+	{
+		char *end;
+
+		// Trim leading space
+		while(isspace((unsigned char)*str)) str++;
+
+		if(*str == 0)  // All spaces?
+		return str;
+
+		// Trim trailing space
+		end = str + strlen(str) - 1;
+		while(end > str && isspace((unsigned char)*end)) end--;
+
+		// Write new null terminator
+		*(end+1) = 0;
+
+		return str;
+	}
+
 	//Option : Load OBJ
-	void load_obj(const char* filename){
+	void load_obj(const char* filename, bool process_uv=false){
 		vertices.clear();
 		triangles.clear();
 		//printf ( "Loading Objects %s ... \n",filename);
@@ -829,10 +845,47 @@ namespace Simplify
 		char line[1000];
 		memset ( line,0,1000 );
 		int vertex_cnt = 0;
+		int material = -1;
+		std::map<std::string, int> material_map;
+		std::vector<vec3f> uvs;
+		std::vector<std::vector<int> > uvMap;
+
 		while(fgets( line, 1000, fn ) != NULL)
 		{
 			Vertex v;
-			if ( line[0] == 'v' )
+			vec3f uv;
+
+			if (strncmp(line, "mtllib", 6) == 0)
+			{
+				mtllib = trimwhitespace(&line[7]);
+			}
+			if (strncmp(line, "usemtl", 6) == 0)
+			{
+				std::string usemtl = trimwhitespace(&line[7]);
+				if (material_map.find(usemtl) == material_map.end())
+				{
+					material_map[usemtl] = materials.size();
+					materials.push_back(usemtl);
+				}
+				material = material_map[usemtl];
+			}
+
+			if ( line[0] == 'v' && line[1] == 't' )
+			{
+				if ( line[2] == ' ' )
+				if(sscanf(line,"vt %lf %lf",
+					&uv.x,&uv.y)==2)
+				{
+					uv.z = 0;
+					uvs.push_back(uv);
+				} else
+				if(sscanf(line,"vt %lf %lf %lf",
+					&uv.x,&uv.y,&uv.z)==3)
+				{
+					uvs.push_back(uv);
+				}
+			}
+			else if ( line[0] == 'v' )
 			{
 				if ( line[1] == ' ' )
 				if(sscanf(line,"v %lf %lf %lf",
@@ -846,6 +899,7 @@ namespace Simplify
 			{
 				Triangle t;
 				bool tri_ok = false;
+                bool has_uv = false;
 
 				if(sscanf(line,"f %d %d %d",
 					&integers[0],&integers[1],&integers[2])==3)
@@ -870,20 +924,32 @@ namespace Simplify
 					&integers[2],&integers[8],&integers[5])==9)
 				{
 					tri_ok = true;
+					has_uv = true;
 				}
 				else
 				{
-					printf("unrecognized sequence exiting \n");
+					printf("unrecognized sequence\n");
 					printf("%s\n",line);
-                    exit(1);
+					while(1);
 				}
 				if ( tri_ok )
 				{
 					t.v[0] = integers[0]-1-vertex_cnt;
 					t.v[1] = integers[1]-1-vertex_cnt;
 					t.v[2] = integers[2]-1-vertex_cnt;
+					t.attr = 0;
 
-					//tri.material = material;
+					if ( process_uv && has_uv )
+					{
+						std::vector<int> indices;
+						indices.push_back(integers[6]-1-vertex_cnt);
+						indices.push_back(integers[7]-1-vertex_cnt);
+						indices.push_back(integers[8]-1-vertex_cnt);
+						uvMap.push_back(indices);
+						t.attr |= TEXCOORD;
+					}
+
+					t.material = material;
 					//geo.triangles.push_back ( tri );
 					triangles.push_back(t);
 					//state_before = state;
@@ -891,8 +957,19 @@ namespace Simplify
 				}
 			}
 		}
+
+		if ( process_uv && uvs.size() )
+		{
+			loopi(0,triangles.size())
+			{
+				loopj(0,3)
+				triangles[i].uvs[j] = uvs[uvMap[i][j]];
+			}
+		}
+
 		fclose(fn);
-		//printf("load_obj: vertices = %lu, triangles = %lu\n", vertices.size(), triangles.size() );
+
+		//printf("load_obj: vertices = %lu, triangles = %lu, uvs = %lu\n", vertices.size(), triangles.size(), uvs.size() );
 	} // load_obj()
 
 	// Optional : Store as OBJ
@@ -900,219 +977,52 @@ namespace Simplify
 	void write_obj(const char* filename)
 	{
 		FILE *file=fopen(filename, "w");
+		int cur_material = -1;
+		bool has_uv = (triangles.size() && (triangles[0].attr & TEXCOORD) == TEXCOORD);
+
 		if (!file)
 		{
 			printf("write_obj: can't write data file \"%s\".\n", filename);
 			exit(0);
+		}
+		if (!mtllib.empty())
+		{
+			fprintf(file, "mtllib %s\n", mtllib.c_str());
 		}
 		loopi(0,vertices.size())
 		{
 			//fprintf(file, "v %lf %lf %lf\n", vertices[i].p.x,vertices[i].p.y,vertices[i].p.z);
 			fprintf(file, "v %g %g %g\n", vertices[i].p.x,vertices[i].p.y,vertices[i].p.z); //more compact: remove trailing zeros
 		}
+		if (has_uv)
+		{
+			loopi(0,triangles.size()) if(!triangles[i].deleted)
+			{
+				fprintf(file, "vt %g %g\n", triangles[i].uvs[0].x, triangles[i].uvs[0].y);
+				fprintf(file, "vt %g %g\n", triangles[i].uvs[1].x, triangles[i].uvs[1].y);
+				fprintf(file, "vt %g %g\n", triangles[i].uvs[2].x, triangles[i].uvs[2].y);
+			}
+		}
+		int uv = 1;
 		loopi(0,triangles.size()) if(!triangles[i].deleted)
 		{
-			fprintf(file, "f %d %d %d\n", triangles[i].v[0]+1, triangles[i].v[1]+1, triangles[i].v[2]+1);
+			if (triangles[i].material != cur_material)
+			{
+				cur_material = triangles[i].material;
+				fprintf(file, "usemtl %s\n", materials[triangles[i].material].c_str());
+			}
+			if (has_uv)
+			{
+				fprintf(file, "f %d/%d %d/%d %d/%d\n", triangles[i].v[0]+1, uv, triangles[i].v[1]+1, uv+1, triangles[i].v[2]+1, uv+2);
+				uv += 3;
+			}
+			else
+			{
+				fprintf(file, "f %d %d %d\n", triangles[i].v[0]+1, triangles[i].v[1]+1, triangles[i].v[2]+1);
+			}
 			//fprintf(file, "f %d// %d// %d//\n", triangles[i].v[0]+1, triangles[i].v[1]+1, triangles[i].v[2]+1); //more compact: remove trailing zeros
 		}
 		fclose(file);
 	}
-
-    // std::vector<VertexSTL> load_binary(uint8_t* buf) {
-        // std::uint32_t num_faces;
-        // std::memcpy(&num_faces, &buf[80], 4);
-        // printf("num faces %d\n", num_faces);
-
-        // const unsigned int num_indices = num_faces*3;
-        // std::vector<VertexSTL> all_vertices(num_indices);
-
-        // for (int i=0;i<num_faces;i+=1) {
-            // for (int j=0;j<3;j++) {
-                // const int index = i*3+j;
-                // const int position = 84 + 12 + i*50 + j*12;
-                // std::memcpy(&all_vertices[index], &buf[position], 12);
-            // }
-        // }
-        // return all_vertices;
-    // }
-
-    std::vector<VertexSTL> load_binary(const char* filename) {
-        printf("loading binary stl\n");
-        std::fstream fbin;
-        fbin.open(filename, std::ios::in | std::ios::binary);
-        fbin.seekg(80);
-
-        int num_faces;
-        fbin.read(reinterpret_cast<char *>(&num_faces), 4);
-
-        const unsigned int num_indices = num_faces*3;
-
-        size_t len = num_faces*50;
-        char *ret = new char[len];
-        fbin.read(ret, len);
-        std::vector<VertexSTL> all_vertices(num_indices);
-
-        for (int i=0;i<num_faces;i+=1) {
-            for (int j=0;j<3;j++) {
-                const int index = i*3+j;
-                std::memcpy(&all_vertices[index], &ret[12 + i*50 + j*12], 12);
-            }
-        }
-
-        fbin.close();
-
-        return all_vertices;
-    }
-
-    std::vector<VertexSTL> load_ascii(const char* filename) {
-        printf("loading ascii\n");
-
-        std::vector<VertexSTL> all_vertices;
-
-        std::ifstream file;
-        file.open(filename);
-
-        std::string line;
-        while (!file.eof()) {
-            std::getline(file, line);
-            line = trim(line);
-            if (line.rfind("vertex", 0) == 0) {
-                all_vertices.push_back(get_vector(line));
-            }
-        }
-        file.close();
-
-        return all_vertices;
-    }
-
-    // thanks to https://github.com/mkeeter/fstl/blob/master/src/loader.cpp
-    std::vector<VertexSTL> load_stl_vertices(const char* filename) {
-        std::ifstream file(filename);
-        std::string line;
-        std::getline(file, line);
-        if (line.rfind("solid ", 0) == 0) {
-            std::getline(file, line);
-            line = trim(line);
-            if (line.rfind("facet", 0) == 0)
-            {
-                file.close();
-                return load_ascii(filename);
-            }
-        }
-        file.close();
-        return load_binary(filename);
-    }
-
-
-    void load_stl(const char* filename) {
-        vertices.clear();
-        triangles.clear();
-
-        std::vector<VertexSTL> all_vertices = load_stl_vertices(filename);
-        const int32_t num_indices = all_vertices.size();
-        for (int c=0;c<all_vertices.size();c++)
-            all_vertices[c].i = c;
-
-        int32_t *indices;
-        indices = (int32_t *) malloc(num_indices * sizeof(int32_t));
-
-        std::sort(all_vertices.begin(), all_vertices.end());
-
-        float minx =  999999;
-        float miny =  999999;
-        float minz =  999999;
-        float maxx = -999999;
-        float maxy = -999999;
-        float maxz = -999999;
-
-        unsigned int num_vertices = 0;
-        for (int i=0;i<all_vertices.size();i++)
-        {
-            VertexSTL v = all_vertices[i];
-            if (!num_vertices || v != all_vertices[num_vertices-1])
-            {
-                all_vertices[num_vertices++] = v;
-                if (v.x < minx) minx = v.x;
-                if (v.x > maxx) maxx = v.x;
-                if (v.y < miny) miny = v.y;
-                if (v.y > maxy) maxy = v.y;
-                if (v.z < minz) minz = v.z;
-                if (v.z > maxz) maxz = v.z;
-            }
-            indices[v.i] = num_vertices - 1;
-        }
-        all_vertices.resize(num_vertices);
-
-        for (int i=0;i<all_vertices.size();i++)
-        {
-            VertexSTL _v = all_vertices[i];
-            Vertex v;
-            v.p.x = _v.x; v.p.y = _v.y; v.p.z = _v.z;
-            vertices.push_back(v);
-        }
-
-        for (int i=0;i<num_indices;i+=3) {
-            Triangle t;
-            t.v[0] = indices[i];
-            t.v[1] = indices[i+1];
-            t.v[2] = indices[i+2];
-            triangles.push_back(t);
-        }
-
-        printf("STL num of vertices %zu num of triangles %zu\n",
-                vertices.size(), triangles.size());
-    }
-
-    inline void write_float(float f, FILE* file) {
-        fwrite(&f,sizeof(f),1,file);
-    }
-
-    inline void write_vertex_stl(vec3f v, FILE* file) {
-        write_float(v.x, file);
-        write_float(v.y, file);
-        write_float(v.z, file);
-    }
-
-    void write_stl(const char* filename)
-    {
-        FILE *file=fopen(filename, "wb");
-        if (!file)
-        {
-            printf("write_obj: can't write data file \"%s\".\n", filename);
-            exit(0);
-        }
-        unsigned char buffer[80] = {'T', 'I', 'G', 'E', 'R'}; // write 80 empty
-        fwrite(buffer,sizeof(buffer),1,file);
-        unsigned char spacer[2] = {'\0', '\0'}; // null char
-
-        // loopi(0,vertices.size())
-        // {
-            // fprintf(file, "v %g %g %g\n", vertices[i].p.x,vertices[i].p.y,vertices[i].p.z); //more compact: remove trailing zeros
-        // }
-        unsigned int number_triangles = 0;
-        loopi(0,triangles.size()) if(!triangles[i].deleted)
-            number_triangles += 1;
-        fwrite(&number_triangles,sizeof(number_triangles),1,file);
-
-        loopi(0,triangles.size()) if(!triangles[i].deleted)
-        {
-            vec3f v0 = vertices[triangles[i].v[0]].p;
-            vec3f v1 = vertices[triangles[i].v[1]].p;
-            vec3f v2 = vertices[triangles[i].v[2]].p;
-
-            vec3f n;
-            n.cross(v1-v0,v2-v0);
-            n.normalize();
-
-            write_vertex_stl(n, file);
-            write_vertex_stl(v0, file);
-            write_vertex_stl(v1, file);
-            write_vertex_stl(v2, file);
-
-            fwrite(spacer,sizeof(spacer),1,file);
-        }
-        fclose(file);
-    }
-
 };
 ///////////////////////////////////////////

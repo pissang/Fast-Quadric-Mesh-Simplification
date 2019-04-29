@@ -21,35 +21,9 @@
 #include <emscripten.h>
 
 
-int simplify(const float* vertices_arr, const int vertices_count, const int* triangles_arr, const int triangles_count, float reduceFraction, float agressiveness) {
+int simplify(float reduceFraction, float agressiveness) {
 
     printf("Mesh Simplification (C)2014 by Sven Forstmann in 2014, MIT License (%zu-bit)\n", sizeof(size_t)*8);
-
-    Simplify::triangles.clear();
-    Simplify::vertices.clear();
-    for (int i = 0; i < vertices_count; i++) {
-        Simplify::Vertex vtx;
-        vtx.p.x = vertices_arr[i * 3];
-        vtx.p.y = vertices_arr[i * 3 + 1];
-        vtx.p.z = vertices_arr[i * 3 + 2];
-        Simplify::vertices.push_back(vtx);
-    }
-    int maxIdx = 0;
-    for (int i = 0; i < triangles_count; i++) {
-        Simplify::Triangle tri;
-        tri.v[0] = triangles_arr[i * 3];
-        tri.v[1] = triangles_arr[i * 3 + 1];
-        tri.v[2] = triangles_arr[i * 3 + 2];
-
-        maxIdx = tri.v[0] > maxIdx ? tri.v[0] : maxIdx;
-        maxIdx = tri.v[1] > maxIdx ? tri.v[1] : maxIdx;
-        maxIdx = tri.v[2] > maxIdx ? tri.v[2] : maxIdx;
-        Simplify::triangles.push_back(tri);
-    }
-
-    printf("Max index %d, %d, %d\n", maxIdx, vertices_count, triangles_count);
-
-    printf("First Vertex %f, %f, %f\n", Simplify::vertices[0].p.x, Simplify::vertices[0].p.y, Simplify::vertices[0].p.z);
 
     if ((Simplify::triangles.size() < 3) || (Simplify::vertices.size() < 3)) {
         printf("triangles size or vertices size less than 3\n");
@@ -85,8 +59,43 @@ int simplify(const float* vertices_arr, const int vertices_count, const int* tri
 }
 
 extern "C" {
-int EMSCRIPTEN_KEEPALIVE simplify(const float* vertices, const int vertices_count, const int* triangles, const int triangles_count, float reduceFraction) {
-    return simplify(vertices, vertices_count, triangles, triangles_count, reduceFraction, 7.0);// aggressive
+
+void EMSCRIPTEN_KEEPALIVE set_vertices(const float* vertices_arr, const int vertices_count) {
+    Simplify::vertices.clear();
+    for (int i = 0; i < vertices_count; i++) {
+        Simplify::Vertex vtx;
+        vtx.p.x = vertices_arr[i * 3];
+        vtx.p.y = vertices_arr[i * 3 + 1];
+        vtx.p.z = vertices_arr[i * 3 + 2];
+        Simplify::vertices.push_back(vtx);
+    }
+
+}
+
+void EMSCRIPTEN_KEEPALIVE set_triangles(const int* triangles_arr, const int triangles_count) {
+    Simplify::triangles.clear();
+    for (int i = 0; i < triangles_count; i++) {
+        Simplify::Triangle tri;
+        tri.v[0] = triangles_arr[i * 3];
+        tri.v[1] = triangles_arr[i * 3 + 1];
+        tri.v[2] = triangles_arr[i * 3 + 2];
+        Simplify::triangles.push_back(tri);
+    }
+}
+
+void EMSCRIPTEN_KEEPALIVE set_uvs(const int* uvs_arr, const int uvs_count) {
+    for (int i = 0; i < Simplify::triangles.size(); i++) {
+        Simplify::Triangle& tri = Simplify::triangles[i];
+        for (int j = 0; j < 3; j++) {
+            tri.uvs[j].x = uvs_arr[tri.v[j] * 2];
+            tri.uvs[j].y = uvs_arr[tri.v[j] * 2 + 1];
+        }
+        tri.attr |= Simplify::TEXCOORD;
+    }
+}
+
+int EMSCRIPTEN_KEEPALIVE simplify(float reduceFraction) {
+    return simplify(reduceFraction, 7.0);// aggressive
 }
 
 int EMSCRIPTEN_KEEPALIVE get_vertices_count() {
@@ -111,6 +120,16 @@ void EMSCRIPTEN_KEEPALIVE get_triangles(int* triangles_arr) {
         triangles_arr[i * 3] = tri.v[0];
         triangles_arr[i * 3 + 1] = tri.v[1];
         triangles_arr[i * 3 + 2] = tri.v[2];
+    }
+}
+
+void EMSCRIPTEN_KEEPALIVE get_uvs(int* uvs_arr) {
+    for (int i = 0; i < Simplify::triangles.size(); i++) {
+        Simplify::Triangle& tri = Simplify::triangles[i];
+        for (int j = 0; j < 3; j++) {
+            uvs_arr[tri.v[j] * 2] = tri.uvs[j].x;
+            uvs_arr[tri.v[j] * 2 + 1] = tri.uvs[j].y;
+        }
     }
 }
 

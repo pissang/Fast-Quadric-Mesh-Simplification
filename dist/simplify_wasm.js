@@ -1851,8 +1851,8 @@ var ASM_CONSTS = [];
 
 STATIC_BASE = GLOBAL_BASE;
 
-STATICTOP = STATIC_BASE + 9024;
-/* global initializers */  __ATINIT__.push();
+STATICTOP = STATIC_BASE + 9008;
+/* global initializers */  __ATINIT__.push({ func: function() { __GLOBAL__sub_I_Main_cpp() } });
 
 
 
@@ -1860,7 +1860,7 @@ STATICTOP = STATIC_BASE + 9024;
 
 
 
-var STATIC_BUMP = 9024;
+var STATIC_BUMP = 9008;
 Module["STATIC_BASE"] = STATIC_BASE;
 Module["STATIC_BUMP"] = STATIC_BUMP;
 
@@ -2336,6 +2336,12 @@ Module.asmLibraryArg = { "abort": abort, "assert": assert, "enlargeMemory": enla
 var asm =Module["asm"]// EMSCRIPTEN_END_ASM
 (Module.asmGlobalArg, Module.asmLibraryArg, buffer);
 
+var real___GLOBAL__sub_I_Main_cpp = asm["__GLOBAL__sub_I_Main_cpp"]; asm["__GLOBAL__sub_I_Main_cpp"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real___GLOBAL__sub_I_Main_cpp.apply(null, arguments);
+};
+
 var real____cxa_can_catch = asm["___cxa_can_catch"]; asm["___cxa_can_catch"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -2382,6 +2388,12 @@ var real__get_triangles_count = asm["_get_triangles_count"]; asm["_get_triangles
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return real__get_triangles_count.apply(null, arguments);
+};
+
+var real__get_uvs = asm["_get_uvs"]; asm["_get_uvs"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real__get_uvs.apply(null, arguments);
 };
 
 var real__get_vertices = asm["_get_vertices"]; asm["_get_vertices"] = function() {
@@ -2432,6 +2444,24 @@ var real__sbrk = asm["_sbrk"]; asm["_sbrk"] = function() {
   return real__sbrk.apply(null, arguments);
 };
 
+var real__set_triangles = asm["_set_triangles"]; asm["_set_triangles"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real__set_triangles.apply(null, arguments);
+};
+
+var real__set_uvs = asm["_set_uvs"]; asm["_set_uvs"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real__set_uvs.apply(null, arguments);
+};
+
+var real__set_vertices = asm["_set_vertices"]; asm["_set_vertices"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real__set_vertices.apply(null, arguments);
+};
+
 var real__simplify = asm["_simplify"]; asm["_simplify"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -2480,6 +2510,10 @@ var real_stackSave = asm["stackSave"]; asm["stackSave"] = function() {
   return real_stackSave.apply(null, arguments);
 };
 Module["asm"] = asm;
+var __GLOBAL__sub_I_Main_cpp = Module["__GLOBAL__sub_I_Main_cpp"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["__GLOBAL__sub_I_Main_cpp"].apply(null, arguments) };
 var ___cxa_can_catch = Module["___cxa_can_catch"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -2516,6 +2550,10 @@ var _get_triangles_count = Module["_get_triangles_count"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["_get_triangles_count"].apply(null, arguments) };
+var _get_uvs = Module["_get_uvs"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["_get_uvs"].apply(null, arguments) };
 var _get_vertices = Module["_get_vertices"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -2556,6 +2594,18 @@ var _sbrk = Module["_sbrk"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["_sbrk"].apply(null, arguments) };
+var _set_triangles = Module["_set_triangles"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["_set_triangles"].apply(null, arguments) };
+var _set_uvs = Module["_set_uvs"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["_set_uvs"].apply(null, arguments) };
+var _set_vertices = Module["_set_vertices"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["_set_vertices"].apply(null, arguments) };
 var _simplify = Module["_simplify"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
