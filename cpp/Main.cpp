@@ -76,21 +76,10 @@ void EMSCRIPTEN_KEEPALIVE set_triangles(const int* triangles_arr, const int tria
     Simplify::triangles.clear();
     for (int i = 0; i < triangles_count; i++) {
         Simplify::Triangle tri;
-        tri.v[0] = triangles_arr[i * 3];
-        tri.v[1] = triangles_arr[i * 3 + 1];
-        tri.v[2] = triangles_arr[i * 3 + 2];
+        tri.vo[0] = tri.v[0] = triangles_arr[i * 3];
+        tri.vo[1] = tri.v[1] = triangles_arr[i * 3 + 1];
+        tri.vo[2] = tri.v[2] = triangles_arr[i * 3 + 2];
         Simplify::triangles.push_back(tri);
-    }
-}
-
-void EMSCRIPTEN_KEEPALIVE set_uvs(const int* uvs_arr, const int uvs_count) {
-    for (int i = 0; i < Simplify::triangles.size(); i++) {
-        Simplify::Triangle& tri = Simplify::triangles[i];
-        for (int j = 0; j < 3; j++) {
-            tri.uvs[j].x = uvs_arr[tri.v[j] * 2];
-            tri.uvs[j].y = uvs_arr[tri.v[j] * 2 + 1];
-        }
-        tri.attr |= Simplify::TEXCOORD;
     }
 }
 
@@ -114,22 +103,17 @@ void EMSCRIPTEN_KEEPALIVE get_vertices(float* vertices_arr) {
         vertices_arr[i * 3 + 2] = vtx.p.z;
     }
 }
-void EMSCRIPTEN_KEEPALIVE get_triangles(int* triangles_arr) {
+void EMSCRIPTEN_KEEPALIVE get_triangles(int* triangles_arr, int* original_arr) {
     for (int i = 0; i < Simplify::triangles.size(); i++) {
         Simplify::Triangle& tri = Simplify::triangles[i];
-        triangles_arr[i * 3] = tri.v[0];
-        triangles_arr[i * 3 + 1] = tri.v[1];
-        triangles_arr[i * 3 + 2] = tri.v[2];
-    }
-}
+        int i3 = i * 3;
+        triangles_arr[i3] = tri.v[0];
+        triangles_arr[i3 + 1] = tri.v[1];
+        triangles_arr[i3 + 2] = tri.v[2];
 
-void EMSCRIPTEN_KEEPALIVE get_uvs(int* uvs_arr) {
-    for (int i = 0; i < Simplify::triangles.size(); i++) {
-        Simplify::Triangle& tri = Simplify::triangles[i];
-        for (int j = 0; j < 3; j++) {
-            uvs_arr[tri.v[j] * 2] = tri.uvs[j].x;
-            uvs_arr[tri.v[j] * 2 + 1] = tri.uvs[j].y;
-        }
+        original_arr[i3] = tri.vo[0];
+        original_arr[i3 + 1] = tri.vo[1];
+        original_arr[i3 + 2] = tri.vo[2];
     }
 }
 
