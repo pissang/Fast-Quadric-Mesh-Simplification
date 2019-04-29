@@ -1,0 +1,25 @@
+{
+  "name": "quadric-mesh-simplify",
+  "version": "1.0.0",
+  "description": "WebAssembly version of Fast Quadric Mesh Simplification",
+  "main": "simplify.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "webgl-obj-loader": "^2.0.3"
+  },
+  "devDependencies": {
+    "parse-obj": "0.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pissang/Fast-Quadric-Mesh-Simplification.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pissang/Fast-Quadric-Mesh-Simplification/issues"
+  },
+  "homepage": "https://github.com/pissang/Fast-Quadric-Mesh-Simplification#readme"
+}
