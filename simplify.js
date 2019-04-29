@@ -1,6 +1,5 @@
 const simplifyWasmMod = require('./dist/simplify_wasm');
-// const {parse} = require('@loaders.gl/core');
-// const {GLTFLoader} = require('@loaders.gl/gltf');
+const GLTF = require('./gltf');
 
 /**
  * @param {Float32Array} vertices
@@ -50,6 +49,63 @@ function simplify(vertices, triangles, reduceFraction) {
     };
 }
 
+function simplifiedAttributesData(attributesArr, vertexCount, size, triangles, trianglesMap) {
+    const simplifiedArr = new (attributesArr.constructor)(vertexCount * size);
+    for (let i = 0; i < triangles.length; i++) {
+        let newIdx = triangles[i];
+        let oldIdx = trianglesMap[i];
+        simplifiedArr[newIdx] = attributesArr[oldIdx];
+    }
+    return simplifiedArr;
+}
+
+function simplifyGLTF(filePath, reduceFraction, outputName) {
+    const gltfHelper = new GLTF();
+    return gltfHelper.load(filePath).then(data => {
+        const newMeshes = data.meshes.map(mesh => {
+            return {
+                name: mesh.name,
+                primitives: mesh.primitives.map(primitive => {
+                    let vertices = primitive.attributes.POSITION.value;
+                    let indices = primitive.indices;
+                    const simpRes = simplify(vertices, indices, reduceFraction);
+                    const attributes = {};
+                    for (let key in primitive.attributes) {
+                        if (key === 'POSITION') {
+                            attributes['POSITION'] = {
+                                value: simpRes.vertices,
+                                size: 3
+                            };
+                        }
+                        else {
+                            let vertexCount =  simpRes.vertices.length / 3;
+                            attributes[key] = {
+                                value: simplifiedAttributesData(
+                                    primitive.attributes[key].value,
+                                    vertexCount,
+                                    primitive.attributes[key].size,
+                                    simpRes.triangles,
+                                    simpRes.trianglesMap
+                                ),
+                                size: primitive.attributes[key].size
+                            };
+                        }
+                    }
+                    return {
+                        material: primitive.material,
+                        indices: simpRes.triangles,
+                        attributes: attributes
+                    };
+                })
+            };
+        });
+
+        return gltfHelper.build(data.json, newMeshes, outputName);
+    });
+}
+
 module.exports.simplify = simplify;
 
-// module.exports.simplifyGLTF = simplifyGLTF;
+module.exports.simplifiedAttributesData = simplifiedAttributesData;
+
+module.exports.simplifyGLTF = simplifyGLTF;
