@@ -54,7 +54,9 @@ function simplifiedAttributesData(attributesArr, vertexCount, size, triangles, t
     for (let i = 0; i < triangles.length; i++) {
         let newIdx = triangles[i];
         let oldIdx = trianglesMap[i];
-        simplifiedArr[newIdx] = attributesArr[oldIdx];
+        for (let k = 0; k < size; k++) {
+            simplifiedArr[newIdx * size + k] = attributesArr[oldIdx * size + k];
+        }
     }
     return simplifiedArr;
 }
